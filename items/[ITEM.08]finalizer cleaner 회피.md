@@ -1,4 +1,4 @@
-## [ITEM.8] finalizer cleaner 회피
+## [ITEM.08] finalizer cleaner 회피
 ### 두 가지 객체 소멸자
 - finalizer
     - 예측할 수 없으며, 상황에 따라 위험할 수 있음

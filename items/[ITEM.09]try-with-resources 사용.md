@@ -1,4 +1,4 @@
-## [ITEM.9] try-with-resources 사용
+## [ITEM.09] try-with-resources 사용
 - `close`로 닫아줘야 하는 자원이 많음
     - 안전망으로 `finalizer`를 사용하지만, 믿음직하지 못함
 

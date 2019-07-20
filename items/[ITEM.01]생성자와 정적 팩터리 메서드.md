@@ -1,4 +1,4 @@
-## [Item.1] 생성자 대신 정적 팩터리 메서드
+## [ITEM.01] 생성자 대신 정적 팩터리 메서드
 - static factory method
 ```
 public static Boolean valueOf(boolean b){
