@@ -164,12 +164,12 @@ p1.equals(p3) // false // 색상을 고려하기 시작했기 때문
     - `StackOverflowError`
 
 ### 추이성 문제 해결 방법
-- `descrete class`를 확장해 새로운 값을 추가하면서
+- 구체 클래스를 확장해 새로운 값을 추가하면서
     - `equals 규약`을 만족시킬 방법은 없음
     - 추상화의 이점을 지키려면..
 - 다른 해결 방법?
     - `equals` 내부의 `instanceof` 검사를 `getClass`검사로 바꾸기
-    - 값도 추가하면서 `descrete class` 상속도 가능하지 않나?
+    - 값도 추가하면서 구체 클래스 상속도 가능하지 않나?
 ```
 // 리스코프 치환 원칙 위배(Liskov subsititution principle X)
 @Override public boolean equals(Object o){
@@ -185,7 +185,7 @@ p1.equals(p3) // false // 색상을 고려하기 시작했기 때문
     - 타입의 모든 메서드가 하위 타입에서도 똑같이 동작해야 함
 
 ### 우회 방법
-- descrete class의 하위 클래스에서 값을 추가할 방법은 없지만..
+- 구체 클래스의 하위 클래스에서 값을 추가할 방법은 없지만..
 - 상속 대신 composition을 사용하기
 - `Point` 대신 `Point`를 `ColorPoint`의 private 필드로 두고,
     - `ColorPoint`의 같은 위치의 일반 `Point`를 반환하는 `View` 메서드를 `public`으로 추가하기

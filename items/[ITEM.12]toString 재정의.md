@@ -51,7 +51,7 @@
     - 의미 파악까지는 제공하지 않음
 
 ### 결론
-- 모든 descrete class에서 `Object`의 `toString`을 재정의하기
+- 모든 구체 클래스에서 `Object`의 `toString`을 재정의하기
     - 상위 클래스에서 잘 구현했을경우는 예외
 - 잘 구현된 `toString`은 디버깅을 쉽게 해준다.
 - `toString`은 객체에 대한 명확하고 유용한 정보를
