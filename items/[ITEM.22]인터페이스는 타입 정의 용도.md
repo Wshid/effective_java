@@ -73,16 +73,16 @@
     - 클래스의 이름까지 함께 명시해야 함
         - `PhysicalConstants.AVOGADROS_NUMBER`
 - `static import` 사용시, 그 이름도 생략 가능
-```
-import static effectivejava...constantutilityclass.PhysicalConstants.*;
-
-public class Test {
-    double atoms(double mols) {
-        return AVOGADROS_NUMBER * mols;
-    }
-    ...
-}
-```
+    >```
+    >import static effectivejava...constantutilityclass.PhysicalConstants.*;
+    >
+    >public class Test {
+    >    double atoms(double mols) {
+    >        return AVOGADROS_NUMBER * mols;
+    >    }
+    >    ...
+    >}
+    >```
 
 ### 결론
 - 인터페이스는 **타입을 정의하는 용도**로만 사용해야 함
