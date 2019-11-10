@@ -240,3 +240,168 @@
       System.out.printf("%f %s %f = %f%n", x, op, y, op.apply(x,y));
   }
   ```
+
+### 열거타입의 함수
+- `valueof`
+  - 상수 이름을 입력받아 그 이름에 해당하는 상수 반환
+  - `toString` 메서드를 재정의 하려면
+    - `toString`이 반환하는 문자열을, 다시 열거타입 상수로 변환하는 `fromString` 메서드도 제공해야 함
+- `fromString` 예시 코드
+  ```java
+  private static final Map<String, Operation> stringToEnum =
+    Stream.of(values()).collect(toMap(Object::toString, e -> e));
+  
+  public static Optional<Operation> fromString(String symbol) {
+    Return Optional.ofNullable(stringToEnum.get(symbol));
+  }
+  ```
+  - `Operation` 상수가 `stringToEnum` 맵에 추가되는 시점
+       - 열거 타입 상수 생성 후 **정적 필드**가 추가 될 때
+  - values 메서드가 반환하는 배열 대신, `Stream`을 사용함
+    - java8 이전에는  빈 해시맵을 만든 후, `values`가 반환된 배열을 순회하며 [문자열, 열거타입 상수]를 맵에 추가
+    - 열거 타입 상수의 경우, 생성자에서 자신의 인스턴스를 맵에 추가할 수 없음
+      - `Compile Error` 발생
+    - 만약 이 방식이 허용될 경우 `Runtime`에 `NullPointerException`이 발생할 것
+  - 열거 타입의 **정적 필드** 중, 열거 타입의 생성자에서 접근 가능한 것은
+    - **상수 변수**(ITEM.24)
+  - 열거 타입의 생성자가 실행되는 시점에는, **정적 필드**가 초기화 되기 전,
+    - 자기 자신을 추가하지 못하게 하는 제약이 필요
+    - **열거 타입의 생성자**에서, 같은 **열거 타입**의 다른 상수도 접근 불가
+  - `fromString`이 `Optional<Operation>`을 반환한다
+    - 주어진 **문자열이 가리키는 연산**이 **존재하지 않을 수 있음**
+      - 이를 C에게 알린다
+    - 그 상황을 C에서 대처하도록 함
+
+### 상수별 메서드 구현의 단점
+- **열거 타입 상수**끼리 코드를 공유하기 어려움
+- 급여명세서 예시
+  - 사용할 요일을 표현하는 열거 타입
+  - 직원의 시간당 임금과 일한 시간을 가지고 계산하는 메서드 존재
+  - 오버타임 발생시, 잔업수당
+  - 주말에는 무조건 잔업수당 부여
+  - `switch...case`를 이용한 코드
+    ```java
+    enum PayrollDay {
+      MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY;
+
+      private static final int MINS_PER_SHIFT = 8 * 60;
+
+      int pay(int minutesWorked, int payRate) {
+        int basePay = minutesWorked * payRate;
+
+        int overtimePay;
+        switch(this) {
+          case SATURDAY: case SUNDAY:
+            overtimePay = basePay / 2;
+            break;
+          default:
+            overtimePay = minutesWored <= MINS_PER_SHIFT ?
+              0 : (minutesWored - MINS_PER_SHIFT) * payRate / 2;
+        }
+
+        return basePay + overtimePay;
+      }
+    }
+    ``` 
+    - 관리 관점에서는 위험한 코드
+    - 새로운 값을 열거타입에 추가하는 경우
+      - 그 값에 상응하는 case 문도 추가해 주어야 한다
+    - 깜빡할 경우, compile 에러도 발생하지 않겠지만, 평일과 같은 임금을 받게 될 것
+
+### 상수별 메서드 구현 예시의 해결책
+- 두가지 방법
+  - 잔업수당을 계산하는 코드를 모든 상수에 중복하기
+  - 계산 코드를 평일용/주말용으로 나누어
+    - 각각을 **도우미 메서드**로 작성
+    - 각 상수가 이를 호출하도록 하면 됨
+- 두 방법 모두, 가독성이 떨어지며, 오류 발생 가능성이 높음
+- 세로운 상수를 추가하면서 `overtimePay` 메서드를 재정의하지 않으면
+  - 평일용 메서드를 그대로 물려 받음
+- 새로운 상수를 추가할때 **잔업수당** 전략을 선택하도록 하기
+  - 잔업수당 계산을 `private 중첩 열거 타입(payType)`으로 옮기고
+    - `PayrollDay` 열거 타입 생성자에서 적당한 내용을 선택하기
+  - `PayrollDay` 열거 타입은
+    - 잔업 수당 계산을 **전략 열거 타입**에 위임,
+    - `switch`나 **상수별 메서드 구현**이 필요 없음
+  - 예시 코드
+    ```java
+    enum PayrollDay {
+      MONDAY(WEEKDAY), TUESDAY(WEEKDAY), WENDESDAY(WEEKDAY),
+      THURSDAY(WEEKDAY), FRIDAY(WEEKDAY), SATURDAY(WEEKEND), SUNDAY(WEEKEND);
+
+      private final PayType payType;
+
+      PayrollDay(PayType payType) { this.payType = payType; }
+
+      int pay(int minutesWorked, int payRate) {
+        return payType.pay(minutesWorked, payRate);
+      }
+
+      enum PayType {
+        WEEKDAY {
+          int overtimePay(int minsWorked, int payRate) {
+            return minsWorked <= MINS_PER_SHIFT ? 0 :
+              (minsWorked - MINS_PER_SHIFT) * payRate / 2;
+          }
+        },
+        WEEKEND {
+          int overtimePay(int minsWorked, int payRate) {
+            return minsWorked * payRate / 2;
+          }
+        };
+
+        abstract int overtimePay(int mins, int payRate);
+        private static final int MINS_PER_SHIFT = 8 * 60;
+
+        int pay(int minsWorked, int payRate) {
+          int basePay = minsWorked * payRate;
+          return basePay + overtimePay(minsWorked, payRate);
+        }
+      }
+    }
+    ```
+    
+### switch문의 선택
+- `switch`문은 **열거 타입의 상수별 동작**을 구현하는데 적합하지 않음
+- 하지만, **기존 열거 타입**에 **상수별 동작**을 혼합할 때 좋음
+- 예시 코드
+  - `Operation` 열거 타입에서, 각 연산의 반대연산을 반환하는 메서드 예시 코드
+    ```java
+    public static Operation inverse(Operation op) {
+      switch(op) {
+        case PLUS: return Operation.MINUS;
+        case MINUS: return Operation.PLUS;
+        case TIMES: return Operation.DEVIDE;
+        case DIVIDE: return Operation.TIMES;
+
+        default: throws new AssertionError("알 수 없는 연산 : " + op);
+      }
+    }
+    ```
+    - 추가하려는 메서드가
+      - 의미상 **열거 타입에 속하지 않을 경우**
+    - 열거 타입 안에 포함할 만큼 유용하지 않은 경우에도 사용 가능
+
+### 열거 타입을 써야하는 경우
+- 성능은 **정수 상수**와 거의 동일
+- 열거 타입의 경우,
+  - 메모리에 올리는 공간 및 초기화 시간 소요
+  - 체감될 정도는 아님
+- **필요한 원소**를 **Compile Time**에 다 알수 있는 상수 집합일 경우
+  - `태양계 행성, 한 주의 요일, 체스 말, ...`
+  - `메뉴 아이템, 연산 코드, 명령줄 플래그, ...`
+- **열거 타입**에 정의된 상수 **개수**가 영원히 **고정 불변**일 필요는 x
+  - 열거 타입의 경우
+    - 나중에 상수가 추가돼도,
+    - **바이너리 수준**에서 호환되도록 설계 됨
+
+### 결론
+- **열거 타입**은 **정수 상수**보다
+  - 읽기 쉽고, 안전, 강력 함
+- 대다수의 열거타입이 **명시적 생성자**나 **메서드** 없이 사용되나,
+  - 각 **상수**를 **특정 데이터**와 연결 짓거나,
+  - 다르게 동작할 경우, 필요함
+- **하나의 메서드**가 **상수별**로 다르게 동작해야하는 경우
+  - `switch`문 대신, **상수별 메서드 구현**을 활용할 것
+- 열거 타입 일부가 **같은 동작**을 공유할 경우
+  - **전략 열거 타입 패턴**을 사용
