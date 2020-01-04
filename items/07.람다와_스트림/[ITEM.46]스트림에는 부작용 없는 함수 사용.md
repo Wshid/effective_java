@@ -150,3 +150,89 @@
 - 입력으로 **분류 함수**(classifier)를 받고
 - 출력으로 원소들을 **카테고리**별로 모아놓은 **맵**을 담은 수집기 반환
 - **카테고리**가 해당 원소의 **맵 키**로 쓰인다.
+- 가장 간단한 다중 정의된 `groupingBy`
+  - **분류 함수** 하나를 **인수**로 받아
+  - **맵**을 반환
+    - **맵**에 담긴 각각의 값은
+      - 해당 카테고리에 속하는 원소들을 모두 담은 리스트
+- 예시 - 아나그램 프로그램에서 사용한 수집기
+  ```java
+  words.collect(groupingBy(word -> alphabetize(word)));
+  ```
+  - 알파벳화한 단어를, 알파벳화결과가 같은 결과 단어들의 리스트로 매핑
+
+### groupingBy로 리스트 이외에 **맵** 형태 만들기(3)
+- `groupingBy`가 반환하는 수집기가
+  - **리스트** 이외에 값을 갖는 **맵**을 생성하려면
+  - **분류 함수**와 함께 `downStream` 수집기도 명시해야 한다.
+- `downStream` 수집기의 역할은
+  - 해당 **카테고리**의 모든 원소를 담은 **스트림**으로부터
+  - 값을 생성
+  - 해당 매개변수를 사용하는 간단한 방법은 `toSet()`을 넘기는 방법
+    - `grouptingBy`는 원소들의 리스트가 아닌, `Set`을 값으로 갖는 맵을 만들어 낸다.
+- `toSet`대신 `toCollection(collectionFactory)`를 건네는 방법
+  - **리스트**나 **집합** 대신, `Collection`을 갖는 맵을 생성한다.
+  - 원하는 컬렉션 타입을 선택할 수 있는 **유연성** 확보
+  - `downStream` 수집기로 `counting()`을 건네는 방법도 존재
+    - 각 카테고리(키)를 
+      - 원소를 담은 컬렉션이 아닌 해당 카테고리에 속하는 **원소의 개수**(값)과 매핑한 맵을 사용
+- `downStream` 수집기에 **맵 팩터리**도 지정할 수 있게 해줌
+  - 이 메서드는 **점층적 인수 목록 패턴**(telescoping argument list pattern)에 위배
+    - `mapFactory` 매개변수가 `downStream` 매개변수보다 앞에 놓인다.
+    - 이 버전의 `groupingBy`를 사용시
+      - **맵**과 그 안에 담긴 **컬렉션**의 타입을 모두 지정할 수 있음
+    - **값:`TreeSet`**, `TreeSet`을 반환하는 수집기 생성 가능
+- 위에 해당하는 `groupingBy`에 각각 대응하는 `groupingByConcurrent` 메서드 존재
+  - 대응하는 메서드의 **동시 수행 버전**으로
+  - `ConcurrentHashMap`인스턴스를 생성
+
+### partitioningBy
+- `groupingBy`와 유사
+- **분류 함수**자리에 `predicate`를 받는다
+- **키**가 `Boolean`인 맵을 반환
+- `predicate`에 더해 `downStream` 수집기까지 입력받는 버전도 **다중 정의** 되어 있음
+
+### counting 메서드가 반환하는 수집기
+- `downStream` 수집기 전용
+- `Stream`의 `count` 메서드를 직접 사용하여, 같은 기능을 수행할 수 있기 때문에
+  - `collect(counting())` 형태로 사용할 일은 없음
+- `Collections`에는 이런 속성의 메서드가 16개 더 존재
+  - 그 중 9개는 이름이 `summing`, `averaging`, `summarizing`으로 시작
+    - 각각 `int`, `long`, `double` 스트림용으로 존재
+  - 다중 정의된 `reducing` 메서드
+    - `filtering`, `mapping`, `flatMapping`, `collectingAndThen` 메서드
+    - 설계 관점에서
+      - 스트림 기능의 일부를 복제하여
+        - `downStream` 수집기를 작은 스트림처럼 동작하게 함
+
+### Collector에 정의되어 있지만, **수집**과는 관련 없는 메서드
+- `minBy`, `maxBy`
+  - **인수**로 받은 **비교자**를 이용해
+  - 스트림에서 가장 작은, 큰 원소를 찾아 반환
+  - `Stream` 인터페이스의 `min`, `max`를 일반화 한 것
+  - `java.util.function.BinaryOperator`의 `minBy`와 `maxBy` 메서드가 반환하는
+    - 이진 연산자의 수집기 버전
+- `joining`
+  - 문자열 등의 `CharSequence` 인스턴스의 **스트림**에만 적용 가능
+  - **매개변수가 없는** `joining`
+    - 단순히 원소들을 연결(concatenate)하는 수집기 반환
+  - **인수 1개** `joining`
+    - `CharSeqence` 타입의 구분 문자(delimiter)를 매개변수로 받음
+    - 연결 부위에 해당 delimiter를 삽입하여 문자열 생성
+  - **인수 3개** `joining`
+    - `delimiter / prefix / postfix`를 받음
+    - 예시
+      - `[`, `,`, `]`로 정의 할 시,
+      - `[came, saw, conquered]`처럼 리턴
+
+
+### 결론
+- 스트림 파이프라인의 프로그래밍의 핵심은 **부작용 없는 함수 객체**
+- **스트림**뿐 아니라, 스트림 **관련 객체**에 건네지는
+  - 모든 함수 자체가 **부작용이 없어야 함
+- **종단 연산** 중 `forEach`는
+  - **스트림**이 수행한 **계산 결과**를 보고할때만 사용
+  - **계산 자체에는 이용하지 말 것**
+- **스트림**을 올바르게 사용하려면 **수집기**를 알아야 함
+- 가장 중요한 수집기 팩터리는
+  - `toList`, `toSet`, `toMap`, `groupingBy`, `joining`
