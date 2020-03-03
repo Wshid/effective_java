@@ -206,7 +206,7 @@
   ArrayList(int initialCapacity) : Constructs an empty list with the specified initial capacity
   Collection.size() : Returns the number of elements in this collection.
   ```
-- **2인칭 문장(`return the number`)**이 아닌, **3인칭 문장(`returns the number`)**를 사용해야 함
+- **2인칭 문장(`return the number`)** 이 아닌, **3인칭 문장(`returns the number`)** 을 사용해야 함
 
 ### 클래스, 인터페이스, 필드의 요약 설명
 - 대상을 설명하는 **명사절**
